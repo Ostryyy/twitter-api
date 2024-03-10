@@ -80,4 +80,56 @@ router.put("/changePassword", protect, async (req, res) => {
   }
 });
 
+router.put("/:id/follow", protect, async (req, res) => {
+  try {
+    const userToFollow = await User.findById(req.params.id);
+    const currentUser = await User.findById(req.user._id);
+
+    if (!userToFollow.followers.includes(req.user._id)) {
+      userToFollow.followers.push(req.user._id);
+      userToFollow.followersCount += 1;
+      await userToFollow.save();
+
+      currentUser.following.push(req.params.id);
+      currentUser.followingCount += 1;
+      await currentUser.save();
+
+      res
+        .status(200)
+        .json({ message: `You are now following ${userToFollow.username}` });
+    } else {
+      res.status(400).json({ message: "You're already following this user" });
+    }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.put("/:id/unfollow", protect, async (req, res) => {
+  try {
+    const userToUnfollow = await User.findById(req.params.id);
+    const currentUser = await User.findById(req.user._id);
+
+    if (userToUnfollow.followers.includes(req.user._id)) {
+      userToUnfollow.followers.pull(req.user._id);
+      userToUnfollow.followersCount -= 1;
+      await userToUnfollow.save();
+
+      currentUser.following.pull(req.params.id);
+      currentUser.followingCount -= 1;
+      await currentUser.save();
+
+      res
+        .status(200)
+        .json({
+          message: `You have stopped following ${userToUnfollow.username}`,
+        });
+    } else {
+      res.status(400).json({ message: "You're not following this user" });
+    }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 module.exports = router;
