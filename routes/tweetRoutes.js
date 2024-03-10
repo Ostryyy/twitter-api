@@ -105,6 +105,10 @@ router.get("/user/:userId", async (req, res) => {
 });
 
 router.get("/feed", protect, async (req, res) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+
   try {
     const currentUser = await User.findById(req.user._id);
     if (!currentUser) {
@@ -113,9 +117,21 @@ router.get("/feed", protect, async (req, res) => {
 
     const tweets = await Tweet.find({ author: { $in: currentUser.following } })
       .populate("author", "username")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.json(tweets);
+    const totalTweets = await Tweet.countDocuments({
+      author: { $in: currentUser.following },
+    });
+    const totalPages = Math.ceil(totalTweets / limit);
+
+    res.json({
+      tweets,
+      currentPage: page,
+      totalPages,
+      totalTweets,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
