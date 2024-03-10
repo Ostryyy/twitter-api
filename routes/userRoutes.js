@@ -3,6 +3,36 @@ const router = express.Router();
 const User = require("../models/User");
 const { protect } = require("../middleware/authMiddleware");
 
+router.get("/search", async (req, res) => {
+  const { q } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  try {
+    const users = await User.find({
+      $or: [
+        { username: { $regex: q, $options: "i" } },
+        { email: { $regex: q, $options: "i" } },
+      ],
+    })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await User.countDocuments({
+      $or: [
+        { username: { $regex: q, $options: "i" } },
+        { email: { $regex: q, $options: "i" } },
+      ],
+    });
+    const pages = Math.ceil(total / limit);
+
+    res.json({ data: users, total, pages, currentPage: page });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.put("/updateProfile", protect, async (req, res) => {
   try {
     const { username, email, bio } = req.body;
