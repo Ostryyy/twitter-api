@@ -104,4 +104,21 @@ router.get("/user/:userId", async (req, res) => {
   }
 });
 
+router.get("/feed", protect, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user._id);
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const tweets = await Tweet.find({ author: { $in: currentUser.following } })
+      .populate("author", "username")
+      .sort({ createdAt: -1 });
+
+    res.json(tweets);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
