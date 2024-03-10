@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const User = require("./models/User");
 const authRoutes = require("./routes/authRoutes");
 const tweetRoutes = require("./routes/tweetRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
@@ -11,6 +12,7 @@ app.use(express.json());
 
 app.use("api/auth", authRoutes);
 app.use("/api/tweets", tweetRoutes);
+app.use("/api/user", userRoutes);
 
 mongoose
   .connect(`${process.env.MONGO_URI}/twitter-clone`)
