@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
+const { protect } = require("../middleware/authMiddleware");
 
 router.post("/register", async (req, res) => {
   try {
@@ -71,6 +72,10 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     res.status(400).send(error);
   }
+});
+
+router.get("/ping", protect, async (req, res) => {
+  res.status(200).send()
 });
 
 module.exports = router;
