@@ -3,6 +3,10 @@ const router = express.Router();
 const User = require("../models/User");
 const { protect } = require("../middleware/authMiddleware");
 
+router.get("/profile", protect, (req, res) => {
+  res.json({ user: req.user });
+});
+
 router.get("/search", async (req, res) => {
   const { q } = req.query;
   const page = parseInt(req.query.page) || 1;
