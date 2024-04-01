@@ -38,6 +38,26 @@ router.delete("/:tweetId", protect, async (req, res) => {
   }
 });
 
+router.post("/", protect, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content) {
+      return res.status(400).json({ message: "Content is required" });
+    }
+
+    const tweet = await Tweet.create({
+      content,
+      author: req.user._id, 
+    });
+
+    res.status(201).json(tweet);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error creating tweet" });
+  }
+});
+
+
 router.post("/:tweetId/like", protect, async (req, res) => {
   try {
     const tweet = await Tweet.findById(req.params.tweetId);
