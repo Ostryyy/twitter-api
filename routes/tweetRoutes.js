@@ -6,18 +6,22 @@ const { protect } = require("../middleware/authMiddleware");
 router.get("/", protect, async (req, res) => {
   try {
     const tweets = await Tweet.find()
-      .populate("author", "username")
+      .populate("author", "username _id")
       .populate({
-        path: "originalTweetId", 
+        path: "comments.author",
+        select: "username _id",
+      })
+      .populate({
+        path: "originalTweetId",
         populate: [
-          { path: "author", select: "username" }, 
-          { path: "likes", select: "username" },
-          { path: "retweets", select: "username" }, 
+          { path: "author", select: "username _id" },
+          { path: "likes", select: "username _id" },
+          { path: "retweets", select: "username _id" },
           {
             path: "comments",
-            populate: { path: "author", select: "username" }, 
+            populate: { path: "author", select: "username _id" },
           },
-        ]
+        ],
       });
 
     res.status(200).json(tweets);
@@ -26,8 +30,6 @@ router.get("/", protect, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
-
 
 router.delete("/:tweetId", protect, async (req, res) => {
   try {
@@ -161,10 +163,24 @@ router.get("/search", async (req, res) => {
 router.get("/user/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    const tweets = await Tweet.find({ author: userId }).populate(
-      "author",
-      "username"
-    );
+    const tweets = await Tweet.find({ author: userId })
+      .populate("author", "username _id")
+      .populate({
+        path: "comments.author",
+        select: "username _id",
+      })
+      .populate({
+        path: "originalTweetId",
+        populate: [
+          { path: "author", select: "username _id" },
+          { path: "likes", select: "username _id" },
+          { path: "retweets", select: "username _id" },
+          {
+            path: "comments",
+            populate: { path: "author", select: "username _id" },
+          },
+        ],
+      });
     res.status(200).json(tweets);
   } catch (error) {
     res.status(500).json({ message: error.message });

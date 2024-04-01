@@ -7,6 +7,24 @@ router.get("/profile", protect, (req, res) => {
   res.json({ user: req.user });
 });
 
+router.get("/:id", protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+      .select("-password")
+      .populate("followers", "username")
+      .populate("following", "username");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.get("/search", async (req, res) => {
   const { q } = req.query;
   const page = parseInt(req.query.page) || 1;
@@ -123,11 +141,9 @@ router.put("/:id/unfollow", protect, async (req, res) => {
       currentUser.followingCount -= 1;
       await currentUser.save();
 
-      res
-        .status(200)
-        .json({
-          message: `You have stopped following ${userToUnfollow.username}`,
-        });
+      res.status(200).json({
+        message: `You have stopped following ${userToUnfollow.username}`,
+      });
     } else {
       res.status(400).json({ message: "You're not following this user" });
     }
