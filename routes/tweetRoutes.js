@@ -3,16 +3,38 @@ const router = express.Router();
 const Tweet = require("../models/Tweet");
 const { protect } = require("../middleware/authMiddleware");
 
-router.post("/", protect, async (req, res) => {
+router.get("/", protect, async (req, res) => {
   try {
-    const { content } = req.body;
-    const tweet = await Tweet.create({
-      content,
-      author: req.user._id,
-    });
-    res.status(201).json(tweet);
+    const tweets = await Tweet.find()
+      .populate("author", "username")
+      .populate({
+        path: "comments.author",
+        select: "username -_id",
+      })
+      .populate("likes", "username")
+      .populate("retweets", "username");
+    res.status(200).json(tweets);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.delete("/:tweetId", protect, async (req, res) => {
+  try {
+    const tweet = await Tweet.findById(req.params.tweetId);
+
+    if (!tweet) {
+      return res.status(404).json({ message: "Tweet not found" });
+    }
+
+    if (tweet.author.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: "User not authorized" });
+    }
+
+    await Tweet.findByIdAndDelete(req.params.tweetId);
+    res.status(200).json({ message: "Tweet deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
