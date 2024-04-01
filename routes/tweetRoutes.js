@@ -8,16 +8,26 @@ router.get("/", protect, async (req, res) => {
     const tweets = await Tweet.find()
       .populate("author", "username")
       .populate({
-        path: "comments.author",
-        select: "username -_id",
-      })
-      .populate("likes", "username")
-      .populate("retweets", "username");
+        path: "originalTweetId", 
+        populate: [
+          { path: "author", select: "username" }, 
+          { path: "likes", select: "username" },
+          { path: "retweets", select: "username" }, 
+          {
+            path: "comments",
+            populate: { path: "author", select: "username" }, 
+          },
+        ]
+      });
+
     res.status(200).json(tweets);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 });
+
+
 
 router.delete("/:tweetId", protect, async (req, res) => {
   try {
@@ -47,7 +57,7 @@ router.post("/", protect, async (req, res) => {
 
     const tweet = await Tweet.create({
       content,
-      author: req.user._id, 
+      author: req.user._id,
     });
 
     res.status(201).json(tweet);
@@ -56,7 +66,6 @@ router.post("/", protect, async (req, res) => {
     res.status(500).json({ message: "Error creating tweet" });
   }
 });
-
 
 router.post("/:tweetId/like", protect, async (req, res) => {
   try {
@@ -75,13 +84,29 @@ router.post("/:tweetId/like", protect, async (req, res) => {
 
 router.post("/:tweetId/retweet", protect, async (req, res) => {
   try {
+    const { content } = req.body;
+
     const originalTweet = await Tweet.findById(req.params.tweetId);
+    if (!originalTweet) {
+      return res.status(404).json({ message: "Original tweet not found" });
+    }
+
     const retweet = await Tweet.create({
-      content: originalTweet.content,
+      content: content ?? "",
       author: req.user._id,
+      originalTweetId: originalTweet._id,
     });
-    res.json(retweet);
+
+    originalTweet.retweets.push(req.user._id);
+    await originalTweet.save();
+
+    const populatedRetweet = await Tweet.findById(retweet._id)
+      .populate("author", "username")
+      .populate("originalTweetId");
+
+    res.status(201).json(populatedRetweet);
   } catch (error) {
+    console.error(error);
     res.status(400).json({ message: error.message });
   }
 });
